@@ -18,7 +18,10 @@
   }
 </script>
 
+
+
 <script type="module">
+  import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
   import * as THREE from 'three'
   import { OrbitControls } from 'three/addons/controls/OrbitControls.js'
 
@@ -34,6 +37,10 @@
   renderer.shadowMap.enabled = true
   renderer.setSize(window.innerWidth, window.innerHeight)
   document.body.appendChild(renderer.domElement)
+  let loader = new GLTFLoader();
+  loader.load('/Public/goose_with_knife/scene.gltf', function(gltf){scene.add(gltf.scene);
+    gltf.scene.scale.set(0.04,0.04,0.04)})
+  renderer.render(scene,camera);
 
   const controls = new OrbitControls(camera, renderer.domElement)
 
@@ -88,6 +95,9 @@ else this.position.y += this.velocity.y
   })
   cube.castShadow = true
   scene.add(cube)
+
+  renderer.setSize(window.innerWidth,window.innerHeight);
+  document.body.appendChild(renderer.domElement);
 
   const ground =  new Box({
     width: 5,
