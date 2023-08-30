@@ -38,18 +38,18 @@
   renderer.setSize(window.innerWidth, window.innerHeight)
   document.body.appendChild(renderer.domElement)
   let loader = new GLTFLoader();
-  loader.load('/Public/goose_with_knife/scene.gltf', function(gltf){scene.add(gltf.scene);
-    gltf.scene.scale.set(0.04,0.04,0.04)})
+  //loader.load('/Public/goose_with_knife/scene.gltf', function(gltf){scene.add(gltf.scene);
+    //gltf.scene.scale.set(0.04,0.04,0.04)})
   // let MsMarvel = new Box;
 
   const modelLoader =new GLTFLoader();
     var model;
-    model = await modelLoader.loadAsync('/Public/kamala_khan_-_miss_marvel/scene1.gltf');
+    model = await modelLoader.loadAsync('/Public/goose_with_knife/scene.gltf');
     scene.add(model.scene)
     // model = await modelLoader.loadAsync('./models/pelotitus/male/pelotitus_male.gltf')
     model = model.scene;
     model.position.set(0,1.8,0);
-    model.scale.set(0.1,0.1,0.1)
+    model.scale.set(0.04,0.04,0.04)
     // model.scale.set(10,10,10);
     model.traverse( (child) => {
     // if (child.isMesh) child.material = angryTexture;
@@ -64,46 +64,17 @@
     const controls = new OrbitControls(camera, renderer.domElement)
 
 
-    class Marvel {
+    class Ganso {
       model;
       scene;
       constructor(model, scene){this.model = model; this.scene = scene}
     }
 
-    let player = new Marvel (model, scene)
-
-  // await  loader.load('/Public/kamala_khan_-_miss_marvel/scene1.gltf', function(gltf){scene.add(gltf.scene);
-  //   gltf.scene.scale.set(0.04,0.04,0.04)
-  //   MsMarvel = gltf.scene})
-  // renderer.render(scene,camera);
-  // console.log(MsMarvel)
-
-  // const controls = new OrbitControls(camera, renderer.domElement)
-
-//   class Marvel extends THREE.Mesh{
-
-    
-//     constructor({ width, height,depth, velocity = {x : 0, y : 0, z : 0}, position = {x : 0, y : 0, z : 0} 
-
-//     })
-  
-//     applyGravity(){
-//       this.velocity.y += this.gravity
-
-
-// if (this.bottom + this.velocity.y <= ground.top) {
-//   this.velocity.y *= 0.8
-//   this.velocity.y = -this.velocity.y
-
-// }
-// else this.position.y += this.velocity.y
-// }
-
-//   }
+    let player = new Ganso (model, scene)
 
   class Box extends THREE.Mesh{
 
-    constructor({ width, height,depth, color = '#00ff00', velocity = {x : 0, y : 0, z : 0}, position = {x : 0, y : 0, z : 0} }) {
+    constructor({ width, height,depth, color = '#00ff00', velocity = {x : 0, y : 0, z : 0}, position = {x : 0, y : 0, z : 0}, zAcceleration = false }) {
       super(
 
       new THREE.BoxGeometry(width, height, depth), 
@@ -114,47 +85,88 @@
 
       this.position.set(position.x, position.y, position.z)
 
+      this.right = this.position.x + this.width / 2
+      this.left = this.position.x - this.width / 2
+
       this.bottom = this.position.y - this.height / 2
       this.top = this.position.y + this.height /2
+
+      this.front = this.position.z + this.depth / 2
+      this.back = this.position.z - this.depth / 2
 
 
       this.velocity = velocity 
       this.gravity = -0.002
+
+      this.zAcceleration = zAcceleration
+    }
+
+    updateSides() {
+      this.right = this.position.x + this.width / 2
+      this.left = this.position.x - this.width / 2
+
+      this.bottom = this.position.y - this.height / 2
+      this.top = this.position.y + this.height / 2
+
+      this.front = this.position.z + this.depth / 2
+      this.back = this.position.z - this.depth / 2
     }
 
     update(ground) {
-      this.bottom = this.position.y - this.height / 2
-      this.top = this.position.y + this.height /2
+      this.updateSides()
+      if (this.zAcceleration) this.velocity.z += 0.0003
 
       this.position.x += this.velocity.x
       this.position.z += this.velocity.z
-      this.applyGravity()
+      this.applyGravity(ground)
     }
   
-    applyGravity(){
+    applyGravity(ground){
       this.velocity.y += this.gravity
-
+      
 
 if (this.bottom + this.velocity.y <= ground.top) {
-  this.velocity.y *= 0.8
+
   this.velocity.y = -this.velocity.y
+
+  if (
+        boxCollision({
+          box1: this,
+          box2: ground
+        })
+      ) {
+        const friction = 0.5
+        this.velocity.y *= friction
+        this.velocity.y = -this.velocity.y
+      } else this.position.y += this.velocity.y
 
 }
 else this.position.y += this.velocity.y
 }
     }
+ 
 
+    function boxCollision({ box1, box2 }) {
+    const xCollision = box1.right >= box2.left && box1.left <= box2.right
+    const yCollision =
+      box1.bottom + box1.velocity.y <= box2.top && box1.top >= box2.bottom
+    const zCollision = box1.front >= box2.back && box1.back <= box2.front
+
+    return xCollision && yCollision && zCollision
+  }
+    
   const cube = new Box({
     width: 1,
     height: 1,
     depth: 1,
-    velocity: {x:0, y:-0.1, z:0}
+    velocity: {x:0, y:-0.01, z:0}
   })
   cube.castShadow = true
   scene.add(cube)
 
   renderer.setSize(window.innerWidth,window.innerHeight);
   document.body.appendChild(renderer.domElement);
+    
 
   const ground =  new Box({
     width: 80,
@@ -175,7 +187,7 @@ else this.position.y += this.velocity.y
   camera.position.z = 5
   light.castShadow = true
   console.log(ground.top)
-  //console.log(cube.bottom)
+  console.log(cube.bottom)
 
   const keys = { 
     a: {
@@ -225,18 +237,19 @@ else this.position.y += this.velocity.y
       keys.s.pressed = false
     }
 
-
+  
   })
 
-  //console.log(cube.position.y - cube.height /2)
-  //console.log(ground.position.y + ground.height /2)
-
+    const enemies = []
+  
+  let frames = 0  
   function animate() {
-    requestAnimationFrame(animate)
+    const animationId = requestAnimationFrame(animate)
     renderer.render(scene, camera)
 
     cube.position.x += 0
     cube.position.z += 0
+    cube.position.y += 0
     if (keys.a.pressed) {
       cube.position.x += -0.03
       player.model.position.x += -0.03
@@ -252,6 +265,38 @@ else this.position.y += this.velocity.y
     } 
 
     cube.update(ground)
+    enemies.forEach(enemy => {
+      enemy.update(ground)
+      if (boxCollision({
+        box1: cube,
+        box2: enemy
+      })
+      ){
+        cancelAnimationFrame(animationId)
+      }
+    })
   }
+
+  if (frames % 30 === 0){
+    const enemy = new Box({
+    width: 1,
+    height: 1,
+    depth: 1,
+    position: {
+      x:0,
+      y:0,
+      z:-4
+    },
+    color: '#FF0000',
+    velocity: {x:0, y:0, z:0.005},
+    zAcceleration: true
+  }, 
+  )
+    enemy.castShadow = true
+    scene.add(enemy)
+    enemies.push(enemy)
+  }
+
+  frames++
   animate()
 </script>
