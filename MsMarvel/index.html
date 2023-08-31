@@ -1,9 +1,15 @@
 <style>
   body {
     margin: 0;
-    background: #0c4a6e;
+    background: #ffffff;
   }
 </style>
+
+<body>
+  <canvas id = 'bg'> 
+    
+  </canvas>
+</body>
 
 <script
   async
@@ -25,8 +31,12 @@
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import * as THREE from 'three'
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js'
-let mixer, animations, camera, clock, activeAction, previousAction, renderer;
+let mixer, animations, camera, clock, activeAction, previousAction;
 
+const renderer = new THREE.WebGLRenderer({ //cria um renderizador que vai renderizar a cena a cada chamada nova.
+  canvas: document.querySelector('#bg')
+});
+const scene = new THREE.Scene()
 init();
 animate();
 
@@ -43,26 +53,24 @@ window.addEventListener( 'keydown', onKeyDown);
 
 }
 
-const scene = new THREE.Scene()
 
 renderer.shadowMap.enabled = true
 renderer.setSize(window.innerWidth, window.innerHeight)
 document.body.appendChild(renderer.domElement)
 //loader.load('/Public/goose_with_knife/scene.gltf', function(gltf){scene.add(gltf.scene);
   //gltf.scene.scale.set(0.04,0.04,0.04)})
-// let MsMarvel = new Box;
-
+// let MsMarvel = new Box
 const mesh = new THREE.Mesh();
 const modelLoader = new GLTFLoader();
-modelLoader.load('Public/RobotExpressive.glb', function ( gltf ){
+modelLoader.load('./Public/RobotExpressive.glb', function ( gltf ){
   const model = gltf.scene;
   mixer = new THREE.AnimationMixer (model);
   animations = gltf.animations;
   activeAction = mixer.clipAction( gltf.animations [0]).play();
   activeAction.play();
-  scene.add(model.scene);
+  scene.add(model);
   model.position.set(0,1,0)
-  model.scale.set(0.4,0.4,0.4)
+  model.scale.set(1,1,1)
   model.traverse( (child) => {
 // if (child.isMesh) child.material = angryTexture;
 if ( child.material ) 
@@ -86,11 +94,12 @@ if(child.isMesh) {
 
   function animate() {
     requestAnimationFrame( animate );
-
+    
     const delta = clock.getDelta();
     if(mixer){
       mixer.update( delta );
     }
+    
     renderer.render( scene, camera );
   }
 
@@ -308,7 +317,7 @@ const cube = new Box({
   }
 })
 cube.castShadow = true
-scene.add(cube)
+//scene.add(cube)
 
 renderer.setSize(window.innerWidth,window.innerHeight);
 document.body.appendChild(renderer.domElement);
