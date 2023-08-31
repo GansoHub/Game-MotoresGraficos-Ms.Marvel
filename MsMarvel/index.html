@@ -29,7 +29,7 @@
 
 <script type="module">
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
-import * as THREE from 'three'
+import * as THREE from 'three' 
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js'
 let mixer, animations, camera, clock, activeAction, previousAction;
 
@@ -335,15 +335,21 @@ document.body.appendChild(renderer.domElement);
     ground.position.y = -2
     scene.add(ground)
 
+  
   const light = new THREE.DirectionalLight(0xffffff, 1)
-  light.position.y = 3
-  light.position.z = 1
+  light.position.y = 5
+  light.castShadow = true
+  light.position.z = 5
+  light.position.x = 5
   scene.add(light)
   camera.position.z = 5
-  light.castShadow = true
   console.log(ground.top)
   console.log(cube.bottom)
   scene.add(light)
+
+
+  let lightHelper = new THREE.PointLightHelper(light,1);
+    scene.add(lightHelper);
 
   const keys = { 
     a: {
