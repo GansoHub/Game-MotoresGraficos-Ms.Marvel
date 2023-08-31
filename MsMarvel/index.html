@@ -36,7 +36,23 @@ let mixer, animations, camera, clock, activeAction, previousAction;
 const renderer = new THREE.WebGLRenderer({ //cria um renderizador que vai renderizar a cena a cada chamada nova.
   canvas: document.querySelector('#bg')
 });
-const scene = new THREE.Scene()
+const scene = new THREE.Scene() 
+scene.background = '0xffffff'
+const keys = { 
+    a: {
+      pressed: false,
+    },
+    d: {
+      pressed: false,
+    },
+    s: {
+      pressed: false,
+    },
+    w: {
+      pressed: false,
+    }
+  }
+
 init();
 animate();
 
@@ -50,6 +66,7 @@ camera.lookAt( 0, 1, 0);
 clock = new THREE.Clock();
 window.addEventListener( 'resize', onWindowResize);
 window.addEventListener( 'keydown', onKeyDown);
+window.addEventListener( 'keyup', onKeyUP);
 
 }
 
@@ -99,9 +116,16 @@ if(child.isMesh) {
     if(mixer){
       mixer.update( delta );
     }
-    
+    if (keys.a.pressed){
+      mixer.clipAction( animations[6] ).play();
+    }
+     else if (keys.d.pressed){
+      mixer.clipAction( animations[6] ).play();
+     }
+
     renderer.render( scene, camera );
-  }
+    //console.log(animations)
+  } 
 
   function onKeyDown(event){
 
@@ -122,6 +146,46 @@ if(child.isMesh) {
         break
     }
   }
+
+  function onKeyUP(event){
+
+previousAction = activeAction;
+
+switch(event.code){
+  case 'Digit1':
+    activeAction = mixer.clipAction( animations[0] );
+    break
+  case 'Digit2':
+    activeAction = mixer.clipAction( animations[1] );
+    break
+  case 'Digit3':
+    activeAction = mixer.clipAction( animations[2] );
+    break
+  case 'Digit4':
+    activeAction = mixer.clipAction( animations[3] );
+    break
+}
+}
+
+
+
+previousAction = activeAction;
+
+// switch(event.code){
+//   case 'Digit1':
+//     activeAction = mixer.clipAction( animations[0] );
+//     break
+//   case 'Digit2':
+//     activeAction = mixer.clipAction( animations[1] );
+//     break
+//   case 'Digit3':
+//     activeAction = mixer.clipAction( animations[2] );
+//     break
+//   case 'Digit4':
+//     activeAction = mixer.clipAction( animations[3] );
+//     break
+// }
+
   if(previousAction !== activeAction){
     previousAction.fadeOut( 0.5 );
     activeAction.reset()
@@ -130,84 +194,8 @@ if(child.isMesh) {
                 .fadeIn( 0.5 )
                 .play();
   }
-// model = await modelLoader.loadAsync( 'Public/RobotExpressive.glb', function ( gltf ){ 
-//   mixer = new THREE.AnimationMixer (model);
-//   mixer.clipAction( gltf.animations [0]).play();
-//   scene.add(model.scene);
-// })
-  
-  
-
-  
-
-
-// Play a specific animation
-//const clip = THREE.AnimationClip.findByName( clips, 'jump' );
-//const action = mixer.clipAction( clip );
-//action.play();
-
-  
-// var model;
-// model = await modelLoader.loadAsync('/Public/goose_with_knife/scene.gltf');
-// scene.add(model.scene)
-// // model = await modelLoader.loadAsync('./models/pelotitus/male/pelotitus_male.gltf')
-// model = model.scene;
-// model.position.set(0,1.8,0);
-// model.scale.set(0.04,0.04,0.04)
-// // model.scale.set(10,10,10);
-// model.traverse( (child) => {
-// // if (child.isMesh) child.material = angryTexture;
-// if ( child.material ) 
-//     {child.material.metalness = 0}
-// if(child.isMesh) {
-//     child.castShadow = true
-// }
-// });
-// console.log(model)
 
 const controls = new OrbitControls(camera, renderer.domElement)
-
-// class Ganso {
-//   model;
-//   scene;
-//   constructor(model, scene){this.model = model; this.scene = scene}
-// }
-
-//let player = new Ganso (model, scene)
-
-    
-// class Robot extends THREE.Mesh{
-//   constructor({width, color, height, depth, velocity = {x: 0, y: 0, z:0}, position = {x: 0, y: 0, z: 0}, zAcceletarion = false, model }){
-//     super(new THREE.MeshStandardMaterial({color}))
-    
-//     this.height = height
-//     this.width = width
-//     this.depth = depth
-//     this.color = color
-//     model.scale.set(0.4,0.4,0.4)
-//     scene.add(model.scene);
-//     model = model.scene;
-    
-//     this.position.set(position.x, position.y, position.z)
-    
-//     this.right = this.position.x + this.width / 2
-//     this.left = this.position.x - this.width / 2
-    
-//     this.bottom = this.position.y - this.height / 2
-//     this.top = this.position.y + this.height /2
-    
-//     this.front = this.position.z + this.depth / 2
-//     this.back = this.position.z - this.depth / 2
-    
-    
-//     this.velocity = velocity 
-//     this.gravity = -0.002
-    
-//     this.zAcceleration = zAcceleration
-    
-//     //console.log(color);
-//   }
-// }
 
 
 class Box extends THREE.Mesh{
@@ -351,20 +339,7 @@ document.body.appendChild(renderer.domElement);
   let lightHelper = new THREE.PointLightHelper(light,1);
     scene.add(lightHelper);
 
-  const keys = { 
-    a: {
-      pressed: false
-    },
-    d: {
-      pressed: false
-    },
-    s: {
-      pressed: false
-    },
-    w: {
-      pressed: false
-    }
-  }
+
 
   window.addEventListener('keydown', (event) => {
     switch(event.code){
