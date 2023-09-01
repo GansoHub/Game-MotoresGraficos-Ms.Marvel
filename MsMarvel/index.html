@@ -88,6 +88,7 @@ modelLoader.load('./Public/RobotExpressive.glb', function ( gltf ){
   scene.add(model);
   model.position.set(0,1,0)
   model.scale.set(1,1,1)
+
   model.traverse( (child) => {
 // if (child.isMesh) child.material = angryTexture;
 if ( child.material ) 
@@ -122,6 +123,9 @@ if(child.isMesh) {
      else if (keys.d.pressed){
       mixer.clipAction( animations[6] ).play();
      }
+     else if(keys.w.pressed){
+      mixer.clipAction( animations[11] ).play();
+     }
 
     renderer.render( scene, camera );
     //console.log(animations)
@@ -144,6 +148,15 @@ if(child.isMesh) {
       case 'Digit4':
         activeAction = mixer.clipAction( animations[3] );
         break
+    }
+    if(previousAction !== activeAction)
+    {
+      previousAction.fadeOut( 0.5 );
+      activeAction.reset()
+                  .setEffectiveTimeScale( 1 )
+                  .setEffectiveWeight( 1 )
+                  .fadeIn( 0.5 )
+                  .play();
     }
   }
 
