@@ -31,14 +31,35 @@
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import * as THREE from 'three' 
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js'
-let mixer, animations, camera, clock, activeAction, previousAction;
+let mixer, animations, camera,model,  clock, activeAction, previousAction;
+let robotVelocityX = 0;
+let robotVelocityZ = 0;
+let robotVelocityY = 0;
+let robotPositionY = -1.75;
+let isJumping = false;
+let jumpVelocityY = 200;
+let spawnRate = 200; // Defina a variável spawnRate no escopo global
+let frames = 0;
+let spawnTimer = 0;
+let maxEnemies = 10;
+const numEnemiesToSpawn = 5;
+const jumpSpeed = 0.05;
+const gravity = -0.005;
+const textureLoader = new THREE.TextureLoader();
+const scrapMetalTexture = textureLoader.load('./Public/scrap_metal.jpg');
+const enemies = [] //inimigos
+const enemyMaterial = new THREE.MeshPhongMaterial({
+  map: scrapMetalTexture, // Use a textura como mapa
+  flatShading: true,
+  color: 0xffffff, 
+});
 
 const renderer = new THREE.WebGLRenderer({ //cria um renderizador que vai renderizar a cena a cada chamada nova.
   canvas: document.querySelector('#bg')
 });
-const scene = new THREE.Scene() 
-scene.background = '0xffffff'
-const keys = { 
+const scene = new THREE.Scene()  //cria a cena
+scene.background = '0xffffff' 
+const keys = {  //teclas
     a: {
       pressed: false,
     },
@@ -50,13 +71,16 @@ const keys = {
     },
     w: {
       pressed: false,
+    },
+    Space: {
+      pressed: false,
     }
   }
 
-init();
-animate();
+init(); //seta função iniciar
+animate(); //seta função animar
 
-function init(){
+function init(){ //define função iniciar
   camera = new THREE.PerspectiveCamera( 45, window.innerWidth /  window.innerHeight,
   0.1,
   1000
@@ -64,90 +88,156 @@ function init(){
 camera.position.set(4.61, 2.74, 8)
 camera.lookAt( 0, 1, 0);
 clock = new THREE.Clock();
-window.addEventListener( 'resize', onWindowResize);
-window.addEventListener( 'keydown', onKeyDown);
-window.addEventListener( 'keyup', onKeyUP);
+window.addEventListener( 'resize', onWindowResize); // ajuste da tela
+window.addEventListener( 'keydown', onKeyDown); // Tecla apertada
+//window.addEventListener( 'keyup', onKeyUP); // tecla solta
 
 }
 
 
-renderer.shadowMap.enabled = true
-renderer.setSize(window.innerWidth, window.innerHeight)
-document.body.appendChild(renderer.domElement)
+renderer.shadowMap.enabled = true // seta a sombra inteligente
+renderer.setSize(window.innerWidth, window.innerHeight) //tamanho tela
+document.body.appendChild(renderer.domElement) 
 //loader.load('/Public/goose_with_knife/scene.gltf', function(gltf){scene.add(gltf.scene);
   //gltf.scene.scale.set(0.04,0.04,0.04)})
 // let MsMarvel = new Box
-const mesh = new THREE.Mesh();
-const modelLoader = new GLTFLoader();
-modelLoader.load('./Public/RobotExpressive.glb', function ( gltf ){
-  const model = gltf.scene;
+const mesh = new THREE.Mesh(); //mesh
+const boxGeometry = new THREE.BoxGeometry(1, 1, 1);
+const boxMaterial = new THREE.MeshPhongMaterial({ color: 0x00ff00});
+const boxMesh = new THREE.Mesh(boxGeometry, boxMaterial);
+const modelLoader = new GLTFLoader(); //cerrega modelo
+
+modelLoader.load('./Public/RobotExpressive.glb', function ( gltf ){ //modelo carregado
+  model = gltf.scene;
   mixer = new THREE.AnimationMixer (model);
-  animations = gltf.animations;
-  activeAction = mixer.clipAction( gltf.animations [0]).play();
-  activeAction.play();
-  scene.add(model);
-  model.position.set(0,1,0)
-  model.scale.set(1,1,1)
+  animations = gltf.animations; 
+  activeAction = mixer.clipAction( gltf.animations [0]).play(); //animação base
+  activeAction.play(); //ativa animação base
+  scene.add(model); //adiciona modelo na cena
+  model.position.set(0,-1.75,0)
+  model.scale.set(0.3,0.3,0.3)
 
   model.traverse( (child) => {
-// if (child.isMesh) child.material = angryTexture;
-if ( child.material ) 
-    {child.material.metalness = 0}
 if(child.isMesh) {
     child.castShadow = true
 }
 });
   animate();
 })
-  // renderer = new THREE.WebGLRenderer( { antialias: true});
   renderer.setPixelRatio( window.devicePixelRatio );
   renderer.setSize( window.innerWidth, window.innerHeight );
-  // document.body.appendChild( renderer.domElemt);
   window.addEventListener('resize', onWindowResize );
 
-  function onWindowResize() {
+  function onWindowResize() { // tamanho da tela
     camera.aspect = window.innerWidth / window.innerHeight;
     renderer.setSize( window.innerWidth, window.innerHeight );
   }
 
-  function animate() {
+
+
+  function animate() { //define função animar
     requestAnimationFrame( animate );
+
+    if (model){
+    previousAction = activeAction;
     
-    const delta = clock.getDelta();
-    if(mixer){
-      mixer.update( delta );
+    spawnTimer++;
+    if (spawnTimer >= spawnRate && enemies.length < maxEnemies){
+      spawnEnemy();
+      spawnTimer =0;
     }
+
+    for (let i = enemies.length -1; i>= 0; i--) {
+      const enemy = enemies[i];
+      enemy.update(ground);
+
+      if (enemy.position.z > 10) {
+        scene.remove(enemy);
+        enemies.splice(i, 1);
+      }
+    }
+
+    const delta = clock.getDelta();
+    mixer.update(delta);
+
+    if (!isJumping) {
+      robotPositionY += gravity;
+    }
+
+    model.position.x += robotVelocityX * delta;
+
     if (keys.a.pressed){
       mixer.clipAction( animations[6] ).play();
+      robotVelocityX = -4;
     }
      else if (keys.d.pressed){
       mixer.clipAction( animations[6] ).play();
+      robotVelocityX = 4;
      }
-     else if(keys.w.pressed){
-      mixer.clipAction( animations[11] ).play();
+     else {
+      robotVelocityX =0;
      }
 
+    jumpVelocityY = 0.1;
+
+     if (keys.Space.pressed && !isJumping) {
+      isJumping = true;
+      robotVelocityY = jumpVelocityY;
+     }
+
+     if (isJumping) {
+      mixer.clipAction(animations[11]).play();
+      robotPositionY += robotVelocityY * delta;
+     
+
+     if (robotPositionY <= -1.75) {
+      robotPositionY = -1.75;
+      robotVelocityY = 0;
+      isJumping = false;
+     } else {
+      robotVelocityY += gravity * delta;
+     }
+    } else {
+      if (robotPositionY <= -1.75) {
+        robotPositionY = -1.75;
+      }
+      mixer.clipAction(animations[6]).play();
+    }
+
+    model.position.y = robotPositionY;
+
+     enemies.forEach((enemy) => {
+      enemy.update(ground);
+     });
+
     renderer.render( scene, camera );
+    if(previousAction !== activeAction)
+    {
+      previousAction.fadeOut( 0.5 ); // corrige os frames
+      activeAction.reset()
+                  .setEffectiveTimeScale( 1 )
+                  .setEffectiveWeight( 1 )
+                  .fadeIn( 0.5 )
+                  .play();
+    }
     //console.log(animations)
+    robotPositionY += gravity * delta;
   } 
+}
 
   function onKeyDown(event){
 
     previousAction = activeAction;
 
     switch(event.code){
-      case 'Digit1':
-        activeAction = mixer.clipAction( animations[0] );
-        break
-      case 'Digit2':
-        activeAction = mixer.clipAction( animations[1] );
-        break
-      case 'Digit3':
-        activeAction = mixer.clipAction( animations[2] );
-        break
-      case 'Digit4':
-        activeAction = mixer.clipAction( animations[3] );
-        break
+      case 'Space':
+      keys.Space.pressed = true; 
+      if (!isJumping) {
+        isJumping = true;
+        robotVelocityY += jumpSpeed;
+      }
+      break; 
+
     }
     if(previousAction !== activeAction)
     {
@@ -159,28 +249,6 @@ if(child.isMesh) {
                   .play();
     }
   }
-
-  function onKeyUP(event){
-
-previousAction = activeAction;
-
-switch(event.code){
-  case 'Digit1':
-    activeAction = mixer.clipAction( animations[0] );
-    break
-  case 'Digit2':
-    activeAction = mixer.clipAction( animations[1] );
-    break
-  case 'Digit3':
-    activeAction = mixer.clipAction( animations[2] );
-    break
-  case 'Digit4':
-    activeAction = mixer.clipAction( animations[3] );
-    break
-}
-}
-
-
 
 previousAction = activeAction;
 
@@ -209,105 +277,93 @@ previousAction = activeAction;
   }
 
 const controls = new OrbitControls(camera, renderer.domElement)
-
+// const textureLoader = new THREE.TextureLoader();
+// const scrapMetalTexture = textureLoader.load('./Public/scrap_metal.jpg');
 
 class Box extends THREE.Mesh{
 
-  constructor({ width, height,depth, color = '#00ff00', velocity = {x : 0, y : 0, z : 0}, position = {x : 0, y : 0, z : 0}, zAcceleration = false }) {
-    super(
+constructor({ width,flatshading, height,depth, color = '#00ff00', velocity = {x : 0, y : 0, z : 0}, position = {x : 0, y : 0, z : 0}, zAcceleration = false }) {
+  super(
 
-    new THREE.BoxGeometry(width, height, depth), 
-    new THREE.MeshStandardMaterial({ color }))
-    this.height = height
-    this.width = width
-    this.depth = depth
+  new THREE.BoxGeometry(width, height, depth), 
+  new THREE.MeshPhongMaterial({ color }))
+  this.height = height
+  this.width = width
+  this.depth = depth
+  this.flatshading = flatshading
 
-    this.position.set(position.x, position.y, position.z)
+  this.position.set(position.x, position.y, position.z)
 
-    this.right = this.position.x + this.width / 2
-    this.left = this.position.x - this.width / 2
+  this.right = this.position.x + this.width / 2
+  this.left = this.position.x - this.width / 2
 
-    this.bottom = this.position.y - this.height / 2
-    this.top = this.position.y + this.height /2
+  this.bottom = this.position.y - this.height / 2
+  this.top = this.position.y + this.height /2
 
-    this.front = this.position.z + this.depth / 2
-    this.back = this.position.z - this.depth / 2
+  this.front = this.position.z + this.depth / 2
+  this.back = this.position.z - this.depth / 2
 
 
-    this.velocity = velocity 
-    this.gravity = -0.002
+  this.velocity = velocity 
+  this.gravity = -0.002
 
-    this.zAcceleration = zAcceleration
+  this.zAcceleration = zAcceleration
 
-    //console.log(color)
-  }
-
-  updateSides() {
-    this.right = this.position.x + this.width / 2
-    this.left = this.position.x - this.width / 2
-
-    this.bottom = this.position.y - this.height / 2
-    this.top = this.position.y + this.height / 2
-
-    this.front = this.position.z + this.depth / 2
-    this.back = this.position.z - this.depth / 2
-  }
-
-  update(ground) {
-    this.updateSides()
-    if (this.zAcceleration) this.velocity.z += 0.0003
-
-    this.position.x += this.velocity.x
-    this.position.z += this.velocity.z
-    this.applyGravity(ground)
-  }
-
-  applyGravity(ground){
-    this.velocity.y += this.gravity
-    
-
-    if (this.bottom + this.velocity.y <= ground.top) {
-
-      this.velocity.y = -this.velocity.y
-
-      if (
-            boxCollision({
-              box1: this,
-              box2: ground
-            })
-          ) {
-            const friction = 0.5
-            this.velocity.y *= friction
-            this.velocity.y = -this.velocity.y
-          } else this.position.y += this.velocity.y
-
-    }
-    else this.position.y += this.velocity.y
-  }
 }
- 
 
-function boxCollision({ box1, box2 }) {
-  const xCollision = box1.right >= box2.left && box1.left <= box2.right
-  const yCollision =
-    box1.bottom + box1.velocity.y <= box2.top && box1.top >= box2.bottom
-  const zCollision = box1.front >= box2.back && box1.back <= box2.front
+updateSides() {
+  this.right = this.position.x + this.width / 2
+  this.left = this.position.x - this.width / 2
 
-  return xCollision && yCollision && zCollision
+  this.bottom = this.position.y - this.height / 2
+  this.top = this.position.y + this.height / 2
+
+  this.front = this.position.z + this.depth / 2
+  this.back = this.position.z - this.depth / 2
 }
-    
-// const robo = new Robot({
-//   width: 1,
-//   height: 1,
-//   depth: 1,
-//   color: '#0369a1',
-//   model: modelLoader.loadAsync('Public/RobotExpressive.glb'),
-//   velocity: {
-//     x:0, y:-0.01, z:0
-//   }
-// })
-// robo.castShadow = true
-// scene.add(robo)
+
+update(ground) { //cria o chão
+  this.updateSides()
+  if (this.zAcceleration) this.velocity.z += 0.0003
+
+  this.position.x += this.velocity.x
+  this.position.z += this.velocity.z
+  this.applyGravity(ground)
+}
+
+applyGravity(ground){
+  this.velocity.y += this.gravity
+  
+
+  if (this.bottom + this.velocity.y <= ground.top) {
+
+    this.velocity.y = -this.velocity.y
+
+    if (
+          boxCollision({
+            box1: this,
+            box2: ground
+          })
+        ) {
+          const friction = 0.5
+          this.velocity.y *= friction
+          this.velocity.y = -this.velocity.y
+        } else this.position.y += this.velocity.y
+
+  }
+  else this.position.y += this.velocity.y
+}
+}
+
+
+function boxCollision({ box1, box2 }) { //colisao
+const xCollision = box1.right >= box2.left && box1.left <= box2.right
+const yCollision =
+  box1.bottom + box1.velocity.y <= box2.top && box1.top >= box2.bottom
+const zCollision = box1.front >= box2.back && box1.back <= box2.front
+
+return xCollision && yCollision && zCollision
+}
 
 const cube = new Box({
   width: 1,
@@ -337,7 +393,7 @@ document.body.appendChild(renderer.domElement);
     scene.add(ground)
 
   
-  const light = new THREE.DirectionalLight(0xffffff, 1)
+  const light = new THREE.DirectionalLight(0xffffff, 1) //luzes
   light.position.y = 5
   light.castShadow = true
   light.position.z = 5
@@ -349,7 +405,7 @@ document.body.appendChild(renderer.domElement);
   scene.add(light)
 
 
-  let lightHelper = new THREE.PointLightHelper(light,1);
+  let lightHelper = new THREE.PointLightHelper(light,1); //mostra onde a luz está projetando
     scene.add(lightHelper);
 
 
@@ -389,10 +445,7 @@ document.body.appendChild(renderer.domElement);
 
   
   })
-
-    const enemies = []
-    let frames = 0
-    let spawnRate = 200  
+ 
   // function animate() {
   //   const animationId = requestAnimationFrame(animate)
   //   renderer.render(scene, camera)
@@ -420,28 +473,39 @@ document.body.appendChild(renderer.domElement);
   // }
   
 
-  if (frames % spawnRate === 0){
-    if (spawnRate > 20) spawnRate -=20
-
-    const enemy = new Box({
+  function spawnEnemy() {
+  const enemy = new Box({
     width: 1,
     height: 1,
     depth: 1,
     position: {
       x: (Math.random() - 0.5) * 10,
-      y:0,
-      z:-20 
+      y: 0,
+      z: -20,
     },
-    color: '#FF0000',
-    velocity: {x:0, y:0, z:0.005},
-    zAcceleration: true
-  }, 
-  )
-    enemy.castShadow = true
-    scene.add(enemy)
-    enemies.push(enemy)
-  }
+    material: scrapMetalTexture,
+    velocity: { x: 0, y: 0, z: 0.05 },
+    flatshading: true,
+    zAcceleration: true,
+  });
+  enemy.castShadow = true;
+  scene.add(enemy);
+  enemies.push(enemy);
+}
 
-  frames++
-  animate()
+if (frames % spawnRate === 0) {
+  if (spawnRate > 20) spawnRate -= 20;
+  for (let i = 0; i < numEnemiesToSpawn; i++) {
+    spawnEnemy(); // Call the spawnEnemy function here
+  }
+}
+
+
+frames++;
+animate(); // chama para animar
+  // const enemyMaterial = new THREE.MeshPhongMaterial({
+    //   map: scrapMetalTexture,
+    //   flatShading: true,
+    //   color: 0xffffff
+    // })
 </script>
