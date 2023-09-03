@@ -135,21 +135,23 @@ if(child.isMesh) {
 
 
 
-  function animate() { //define função animar
-    requestAnimationFrame( animate );
+  function animate() {
+  requestAnimationFrame(animate);
 
-    if (model){
+  if (model) {
     previousAction = activeAction;
-    
+
     spawnTimer++;
-    if (spawnTimer >= spawnRate && enemies.length < maxEnemies){
+    if (spawnTimer >= spawnRate && enemies.length < maxEnemies) {
       spawnEnemy();
-      spawnTimer =0;
+      spawnTimer = 0;
     }
+
 
     for (let i = enemies.length -1; i>= 0; i--) {
       const enemy = enemies[i];
-      enemy.update(ground);
+      enemy.update();
+      enemy.position.z += 0.1;
 
       if (enemy.position.z > 10) {
         scene.remove(enemy);
@@ -328,6 +330,14 @@ update(ground) { //cria o chão
 
   this.position.x += this.velocity.x
   this.position.z += this.velocity.z
+
+  if (this.zAcceleration){
+    this.velocity.z += 0.0003;
+  }
+
+  this.position.x += this.velocity.x; 
+  this.position.z += this.velocity.z;
+
   this.applyGravity(ground)
 }
 
@@ -472,34 +482,55 @@ document.body.appendChild(renderer.domElement);
   //   })
   // }
   
+  class Enemy extends THREE.Mesh {
+  constructor(geometry, material) {
+    super(geometry, material);
+    this.velocity = new THREE.Vector3(0, 0, 0.1); // Velocidade do inimigo
+  }
 
-  function spawnEnemy() {
-  const enemy = new Box({
-    width: 1,
-    height: 1,
-    depth: 1,
-    position: {
-      x: (Math.random() - 0.5) * 10,
-      y: 0,
-      z: -20,
-    },
-    material: scrapMetalTexture,
-    velocity: { x: 0, y: 0, z: 0.05 },
-    flatshading: true,
-    zAcceleration: true,
+  update() {
+    this.position.add(this.velocity);
+   if (this. position.z > 10){
+    this.position.z = -20; // Reinicia a posição do inimigo
+      this.position.x = (Math.random() - 0.5) * 10; // Posição horizontal aleatória
+   }
+  }
+}
+
+
+
+function spawnEnemy() {
+  const enemyGeometry = new THREE.BoxGeometry(1, 1, 1);
+  const enemyMaterial = new THREE.MeshPhongMaterial({
+    map: scrapMetalTexture, // Use the texture as the map
+    flatShading: true,
+    color: 0xffffff,
   });
+
+  const enemy = new Enemy(enemyGeometry, enemyMaterial); // Create enemies using the Enemy class
+  enemy.position.set(
+    (Math.random() - 0.5) * 10,
+    0,
+    -20
+  );
   enemy.castShadow = true;
   scene.add(enemy);
   enemies.push(enemy);
 }
 
-if (frames % spawnRate === 0) {
-  if (spawnRate > 20) spawnRate -= 20;
+function spawnEnemies() {
   for (let i = 0; i < numEnemiesToSpawn; i++) {
-    spawnEnemy(); // Call the spawnEnemy function here
+    spawnEnemy();
   }
 }
 
+
+if (frames % spawnRate === 0) {
+  if (spawnRate > 20) spawnRate -= 20;
+  spawnEnemies();
+}
+
+spawnEnemies();
 
 frames++;
 animate(); // chama para animar
