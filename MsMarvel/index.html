@@ -500,6 +500,7 @@ document.body.appendChild(renderer.domElement);
 
 
 function spawnEnemy() {
+  if(enemies.length < maxEnemies){
   const enemyGeometry = new THREE.BoxGeometry(1, 1, 1);
   const enemyMaterial = new THREE.MeshPhongMaterial({
     map: scrapMetalTexture, // Use the texture as the map
@@ -516,6 +517,7 @@ function spawnEnemy() {
   enemy.castShadow = true;
   scene.add(enemy);
   enemies.push(enemy);
+}
 }
 
 function spawnEnemies() {
